@@ -4,7 +4,7 @@ import tensorflow as tf
 
 from tensorflow.keras import Sequential
 from tensorflow.keras.layers import Dense, Flatten, Conv2D, MaxPooling2D
-from tensorflow.keras import EarlyStopping, ModelCheckpoint
+#from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 import matplotlib.pyplot as plt
 
 mnist = tf.keras.datasets.mnist
@@ -35,8 +35,8 @@ model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=
 model.summary()
 
 # Set up callbacks
-early_stopping = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
-model_checkpoint = ModelCheckpoint('best_model.h5', save_best_only=True, monitor='val_loss')
+early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
+model_checkpoint = tf.keras.callbacks.ModelCheckpoint('best_model.keras', save_best_only=True, monitor='val_loss')
 
 # Train the model
 history = model.fit(
@@ -47,7 +47,7 @@ history = model.fit(
 )
 
 # Save the final model
-model.save('final_model.h5')
+model.save('final_model.keras')
 
 loss, accuracy = model.evaluate(X_test, y_test)
 print(f'Accuracy: {accuracy}')
