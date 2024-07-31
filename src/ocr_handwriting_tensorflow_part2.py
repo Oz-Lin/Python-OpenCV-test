@@ -13,7 +13,8 @@ class ImageClassifierApp(QMainWindow):
         self.setGeometry(100, 100, 800, 600)
 
         # Load the pre-trained model
-        self.model = tf.keras.models.load_model('best_model.keras')
+        model_path = r'C:\Users\OP9020\Documents\Python-OpenCV-test\src\final_model.h5'
+        self.model = tf.keras.models.load_model(model_path)
 
         # Central widget
         self.central_widget = QWidget()
