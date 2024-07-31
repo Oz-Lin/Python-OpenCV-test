@@ -14,7 +14,12 @@ class ImageClassifierApp(QMainWindow):
 
         # Load the pre-trained model
         model_path = r'C:\Users\OP9020\Documents\Python-OpenCV-test\src\final_model.h5'
-        self.model = tf.keras.models.load_model(model_path)
+        #self.model = tf.keras.models.load_model(model_path)
+        try:
+            self.model = tf.keras.models.load_model(model_path)
+            print("Model loaded successfully.")
+        except Exception as e:
+            print(f"Error loading model: {e}")
 
         # Central widget
         self.central_widget = QWidget()
@@ -44,22 +49,31 @@ class ImageClassifierApp(QMainWindow):
             self.image_path = file_name
             pixmap = QPixmap(file_name)
             self.image_label.setPixmap(pixmap.scaled(400, 400, aspectRatioMode=1))
+            print("Image loaded successfully.")
             self.classify_image(file_name)
 
     def classify_image(self, file_name):
-        # Load the image
-        image = cv2.imread(file_name, cv2.IMREAD_GRAYSCALE)
-        image = cv2.resize(image, (28, 28))
-        image = image.astype('float32') / 255.0
-        image = np.expand_dims(image, axis=-1)
-        image = np.expand_dims(image, axis=0)
+        try:
+            # Load the image
+            image = cv2.imread(file_name, cv2.IMREAD_GRAYSCALE)
+            if image is None:
+                print("Error: Could not read the image.")
+                return
+            image = cv2.resize(image, (28, 28))
+            image = image.astype('float32') / 255.0
+            image = np.expand_dims(image, axis=-1)
+            image = np.expand_dims(image, axis=0)
+            print("Image preprocessed successfully.")
 
-        # Make a prediction
-        prediction = self.model.predict(image)
-        predicted_class = np.argmax(prediction, axis=1)[0]
+            # Make a prediction
+            prediction = self.model.predict(image)
+            predicted_class = np.argmax(prediction, axis=1)[0]
+            print("Prediction made successfully.")
 
-        # Display the prediction
-        self.result_label.setText(f'Predicted Class: {predicted_class}')
+            # Display the prediction
+            self.result_label.setText(f'Predicted Class: {predicted_class}')
+        except Exception as e:
+            print(f"Error during classification: {e}")
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
