@@ -3,7 +3,35 @@ import cv2
 import numpy as np
 import tensorflow as tf
 from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QLabel, QFileDialog, QVBoxLayout, QWidget
-from PyQt6.QtGui import QPixmap, QImage
+from PyQt6.QtGui import QPixmap
+from PyQt6.QtCore import QThread, pyqtSignal
+
+class PredictionThread(QThread):
+    result_ready = pyqtSignal(int)
+
+    def __init__(self, model, file_name):
+        super().__init__()
+        self.model = model
+        self.file_name = file_name
+
+    def run(self):
+        try:
+            # Load and preprocess the image
+            image = cv2.imread(self.file_name, cv2.IMREAD_GRAYSCALE)
+            if image is None:
+                print("Error: Could not read the image.")
+                return
+            image = cv2.resize(image, (28, 28))
+            image = image.astype('float32') / 255.0
+            image = np.expand_dims(image, axis=-1)
+            image = np.expand_dims(image, axis=0)
+
+            # Make a prediction
+            prediction = self.model.predict(image)
+            predicted_class = np.argmax(prediction, axis=1)[0]
+            self.result_ready.emit(predicted_class)
+        except Exception as e:
+            print(f"Error during classification: {e}")
 
 class ImageClassifierApp(QMainWindow):
     def __init__(self):
@@ -50,30 +78,16 @@ class ImageClassifierApp(QMainWindow):
             pixmap = QPixmap(file_name)
             self.image_label.setPixmap(pixmap.scaled(400, 400, aspectRatioMode=1))
             print("Image loaded successfully.")
-            self.classify_image(file_name)
+            self.start_prediction_thread(file_name)
 
-    def classify_image(self, file_name):
-        try:
-            # Load the image
-            image = cv2.imread(file_name, cv2.IMREAD_GRAYSCALE)
-            if image is None:
-                print("Error: Could not read the image.")
-                return
-            image = cv2.resize(image, (28, 28))
-            image = image.astype('float32') / 255.0
-            image = np.expand_dims(image, axis=-1)
-            image = np.expand_dims(image, axis=0)
-            print("Image preprocessed successfully.")
+    def start_prediction_thread(self, file_name):
+        self.prediction_thread = PredictionThread(self.model, file_name)
+        self.prediction_thread.result_ready.connect(self.show_prediction)
+        self.prediction_thread.start()
 
-            # Make a prediction
-            prediction = self.model.predict(image)
-            predicted_class = np.argmax(prediction, axis=1)[0]
-            print("Prediction made successfully.")
-
-            # Display the prediction
-            self.result_label.setText(f'Predicted Class: {predicted_class}')
-        except Exception as e:
-            print(f"Error during classification: {e}")
+    def show_prediction(self, predicted_class):
+        self.result_label.setText(f'Predicted Class: {predicted_class}')
+        print("Prediction displayed successfully.")
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
