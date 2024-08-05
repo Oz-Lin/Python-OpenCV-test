@@ -3,7 +3,7 @@ import numpy as np
 import cv2
 
 # Load the model
-model_path = r'C:\Users\D7430\Documents\Python-OpenCV-test\src\best_model.keras'
+model_path = r'C:\Users\D7430\Documents\Python-OpenCV-test\src\final_model.keras'
 model = tf.keras.models.load_model(model_path)
 
 # Load and preprocess an image

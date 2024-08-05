@@ -1,3 +1,4 @@
+
 import cv2
 import sys
 from PyQt6.QtWidgets import QApplication, QLabel, QVBoxLayout, QWidget, QFileDialog, QPushButton
@@ -31,3 +32,18 @@ if __name__ == "__main__":
     window = TestApp()
     window.show()
     sys.exit(app.exec())
+
+'''
+import cv2
+
+# Test loading and displaying an image
+pathToImage = 'digit.png'
+image = cv2.imread(pathToImage, cv2.IMREAD_GRAYSCALE)
+if image is not None:
+    cv2.imshow('Test Image', image)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+else:
+    print("Failed to load image.")
+    
+'''
