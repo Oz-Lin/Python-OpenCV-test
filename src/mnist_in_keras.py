@@ -219,9 +219,18 @@ Too small of a batch size creates a very noisy loss function, and the optimizer 
 So a good batch size may take some trial and error to find!
 """
 
-model.fit(X_train, Y_train,
-          batch_size=128, epochs=5,
-          verbose=1)
+# Set up callbacks
+early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
+model_checkpoint = tf.keras.callbacks.ModelCheckpoint('best_model.keras', save_best_only=True, monitor='val_loss')
+
+history = model.fit(X_train, Y_train,
+          batch_size=128, epochs=50,
+          verbose=1, validation_split=0.2,
+          callbacks=[early_stopping, model_checkpoint]
+        )
+
+# Save the final model
+model.save('final_model.keras')
 
 """The two numbers, in order, represent the value of the loss function of the network on the training set, and the overall accuracy of the network on the training data. But how does it do on data it did not train on?
 
@@ -231,6 +240,31 @@ model.fit(X_train, Y_train,
 score = model.evaluate(X_test, Y_test)
 print('Test score:', score[0])
 print('Test accuracy:', score[1])
+
+"""Also make a plot"""
+
+import matplotlib.pyplot as plt
+
+# Plot training & validation accuracy values
+plt.figure(figsize=(12, 4))
+plt.subplot(1, 2, 1)
+plt.plot(history.history['accuracy'], label='Train Accuracy')
+plt.plot(history.history['val_accuracy'], label='Validation Accuracy')
+plt.title('Model Accuracy')
+plt.ylabel('Accuracy')
+plt.xlabel('Epoch')
+plt.legend(loc='upper left')
+
+# Plot training & validation loss values
+plt.subplot(1, 2, 2)
+plt.plot(history.history['loss'], label='Train Loss')
+plt.plot(history.history['val_loss'], label='Validation Loss')
+plt.title('Model Loss')
+plt.ylabel('Loss')
+plt.xlabel('Epoch')
+plt.legend(loc='upper left')
+
+plt.show()
 
 """### Inspecting the output
 
@@ -400,12 +434,46 @@ test_generator = test_gen.flow(X_test, Y_test, batch_size=128)
 
 # SIGNIFICANT MEMORY SAVINGS (important for larger, deeper networks)
 
-model.fit(train_generator, steps_per_epoch=60000//128, epochs=5, verbose=1,
-                    validation_data=test_generator, validation_steps=10000//128)
+# Set up callbacks
+early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
+model_checkpoint = tf.keras.callbacks.ModelCheckpoint('best_model_cnn.keras', save_best_only=True, monitor='val_loss')
+
+history_cnn = model.fit_generator(train_generator, steps_per_epoch=60000//128, epochs=50, verbose=1,
+                    validation_data=test_generator, validation_steps=10000//128,
+                        callbacks=[early_stopping, model_checkpoint]
+)
+
+# Save the final model
+model.save('final_model_cnn.keras')
 
 score = model.evaluate(X_test, Y_test)
 print('Test score:', score[0])
 print('Test accuracy:', score[1])
+
+"""Also make a plot"""
+
+import matplotlib.pyplot as plt
+
+# Plot training & validation accuracy values
+plt.figure(figsize=(12, 4))
+plt.subplot(1, 2, 1)
+plt.plot(history_cnn.history['accuracy'], label='Train Accuracy')
+plt.plot(history_cnn.history['val_accuracy'], label='Validation Accuracy')
+plt.title('Model Accuracy')
+plt.ylabel('Accuracy')
+plt.xlabel('Epoch')
+plt.legend(loc='upper left')
+
+# Plot training & validation loss values
+plt.subplot(1, 2, 2)
+plt.plot(history_cnn.history['loss'], label='Train Loss')
+plt.plot(history_cnn.history['val_loss'], label='Validation Loss')
+plt.title('Model Loss')
+plt.ylabel('Loss')
+plt.xlabel('Epoch')
+plt.legend(loc='upper left')
+
+plt.show()
 
 """## Great results!
 
