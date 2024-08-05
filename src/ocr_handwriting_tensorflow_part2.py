@@ -4,50 +4,13 @@ import numpy as np
 import tensorflow as tf
 from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QLabel, QFileDialog, QVBoxLayout, QWidget
 from PyQt6.QtGui import QPixmap
-from PyQt6.QtCore import QThread, pyqtSignal
-
-class PredictionThread(QThread):
-    result_ready = pyqtSignal(int)
-
-    def __init__(self, model, file_name):
-        super().__init__()
-        self.model = model
-        self.file_name = file_name
-
-    def run(self):
-        try:
-            # Load and preprocess the image
-            image = cv2.imread(self.file_name, cv2.IMREAD_GRAYSCALE)
-            if image is None:
-                print("Error: Could not read the image.")
-                return
-            image = cv2.resize(image, (28, 28))
-            image = image.astype('float32') / 255.0
-            image = np.expand_dims(image, axis=-1)
-            image = np.expand_dims(image, axis=0)
-
-            # Make a prediction
-            prediction = self.model.predict(image)
-            predicted_class = np.argmax(prediction, axis=1)[0]
-            self.result_ready.emit(predicted_class)
-        except Exception as e:
-            print(f"Error during classification: {e}")
+from PyQt6.QtCore import Qt
 
 class ImageClassifierApp(QMainWindow):
     def __init__(self):
         super().__init__()
-
-        self.setWindowTitle('Image Classifier')
+        self.setWindowTitle('Image Classifier App')
         self.setGeometry(100, 100, 800, 600)
-
-        # Load the pre-trained model
-        model_path = r'C:\Users\OP9020\Documents\Python-OpenCV-test\src\final_model.h5'
-        #self.model = tf.keras.models.load_model(model_path)
-        try:
-            self.model = tf.keras.models.load_model(model_path)
-            print("Model loaded successfully.")
-        except Exception as e:
-            print(f"Error loading model: {e}")
 
         # Central widget
         self.central_widget = QWidget()
@@ -70,24 +33,45 @@ class ImageClassifierApp(QMainWindow):
         self.result_label = QLabel('Prediction will be shown here')
         self.layout.addWidget(self.result_label)
 
+        # Load the pre-trained model
+        model_path = r'C:\Users\OP9020\Documents\Python-OpenCV-test\src\final_model.keras'
+        try:
+            self.model = tf.keras.models.load_model(model_path)
+            print("Model loaded successfully.")
+        except Exception as e:
+            print(f"Error loading model: {e}")
+
     def load_image(self):
-        options = QFileDialog.Options()
-        file_name, _ = QFileDialog.getOpenFileName(self, "Open Image File", "", "Image Files (*.png *.jpg *.bmp)", options=options)
-        if file_name:
-            self.image_path = file_name
-            pixmap = QPixmap(file_name)
-            self.image_label.setPixmap(pixmap.scaled(400, 400, aspectRatioMode=1))
+        try:
+            file_name, _ = QFileDialog.getOpenFileName(self, "Open Image File", "", "Image Files (*.png *.jpg *.bmp)")
+            if file_name:
+                print(f"File selected: {file_name}")
+                pixmap = QPixmap(file_name)
+                print("Pixmap created successfully.")
+                self.image_label.setPixmap(pixmap.scaled(400, 400, Qt.AspectRatioMode.KeepAspectRatio))
+                print("Image loaded and displayed successfully.")
+                self.classify_image(file_name)
+        except Exception as e:
+            print(f"Error loading image: {e}")
+
+    def classify_image(self, file_name):
+        try:
+            image = cv2.imread(file_name, cv2.IMREAD_GRAYSCALE)
+            if image is None:
+                print("Error: Could not read the image.")
+                return
             print("Image loaded successfully.")
-            self.start_prediction_thread(file_name)
-
-    def start_prediction_thread(self, file_name):
-        self.prediction_thread = PredictionThread(self.model, file_name)
-        self.prediction_thread.result_ready.connect(self.show_prediction)
-        self.prediction_thread.start()
-
-    def show_prediction(self, predicted_class):
-        self.result_label.setText(f'Predicted Class: {predicted_class}')
-        print("Prediction displayed successfully.")
+            image = cv2.resize(image, (28, 28))
+            print("Image resized successfully.")
+            image = image.astype('float32') / 255.0
+            image = np.expand_dims(image, axis=-1)
+            image = np.expand_dims(image, axis=0)
+            prediction = self.model.predict(image)
+            predicted_class = np.argmax(prediction, axis=1)[0]
+            self.result_label.setText(f'Predicted Class: {predicted_class}')
+            print("Prediction made successfully.")
+        except Exception as e:
+            print(f"Error during classification: {e}")
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
