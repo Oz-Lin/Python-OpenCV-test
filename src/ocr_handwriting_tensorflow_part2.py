@@ -34,7 +34,7 @@ class ImageClassifierApp(QMainWindow):
         self.layout.addWidget(self.result_label)
 
         # Load the pre-trained model
-        model_path = r'final_model.keras'
+        model_path = 'improved_model_20240809.keras'
         try:
             self.model = tf.keras.models.load_model(model_path)
             print("Model loaded successfully.")
