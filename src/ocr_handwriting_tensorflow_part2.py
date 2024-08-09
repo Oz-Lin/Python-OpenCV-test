@@ -24,6 +24,11 @@ class ImageClassifierApp(QMainWindow):
         self.image_label = QLabel('Load an image to classify')
         self.layout.addWidget(self.image_label)
 
+        # Button to load model
+        self.load_model_button = QPushButton('Load Model')
+        self.load_model_button.clicked.connect(self.load_model)
+        self.layout.addWidget(self.load_model_button)
+
         # Button to load image
         self.load_button = QPushButton('Load Image')
         self.load_button.clicked.connect(self.load_image)
@@ -33,15 +38,24 @@ class ImageClassifierApp(QMainWindow):
         self.result_label = QLabel('Prediction will be shown here')
         self.layout.addWidget(self.result_label)
 
-        # Load the pre-trained model
-        model_path = 'improved_model_20240809.keras'
+        # Placeholder for the model
+        self.model = None
+
+    def load_model(self):
         try:
-            self.model = tf.keras.models.load_model(model_path)
-            print("Model loaded successfully.")
+            model_file, _ = QFileDialog.getOpenFileName(self, "Open Model File", "", "Model Files (*.keras)")
+            if model_file:
+                self.model = tf.keras.models.load_model(model_file)
+                print(f"Model loaded successfully from {model_file}")
         except Exception as e:
             print(f"Error loading model: {e}")
 
     def load_image(self):
+        if self.model is None:
+            print("No model loaded. Please load a model first.")
+            self.result_label.setText("Please load a model first.")
+            return
+
         try:
             file_name, _ = QFileDialog.getOpenFileName(self, "Open Image File", "", "Image Files (*.png *.jpg *.bmp)")
             if file_name:
