@@ -3,7 +3,8 @@ import numpy as np
 import tensorflow as tf
 
 from tensorflow.keras import Sequential
-from tensorflow.keras.layers import Dense, Flatten, Conv2D, MaxPooling2D
+from tensorflow.keras.layers import Dense, Flatten, Conv2D, MaxPooling2D, Dropout
+ImageDataGenerator = tf.keras.preprocessing.image.ImageDataGenerator
 #from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 import matplotlib.pyplot as plt
 
@@ -21,13 +22,27 @@ X_test = X_test / 255.0
 X_train = X_train.reshape(-1, 28, 28, 1)
 X_test = X_test.reshape(-1, 28, 28, 1)
 
+# Data Augmentation
+datagen = ImageDataGenerator(
+    rotation_range=10,
+    width_shift_range=0.1,
+    height_shift_range=0.1,
+    zoom_range=0.1
+)
+
+# Fit the data generator to the training data
+datagen.fit(X_train)
+
 model = Sequential([
     Conv2D(32, (3, 3), activation='relu', input_shape=(28, 28, 1)),
     MaxPooling2D((2, 2)),
     Conv2D(64, (3, 3), activation='relu'),
     MaxPooling2D((2, 2)),
+    Conv2D(128, (3, 3), activation='relu'),
+    MaxPooling2D((2, 2)),
     Flatten(),
-    Dense(128, activation='relu'),
+    Dense(256, activation='relu'),
+    Dropout(0.5),
     Dense(10, activation='softmax')
 ])
 
@@ -40,17 +55,17 @@ model_checkpoint = tf.keras.callbacks.ModelCheckpoint('best_model.keras', save_b
 
 # Train the model
 history = model.fit(
-    X_train, y_train,
+    datagen.flow(X_train, y_train, batch_size=32),
     epochs=50,
-    validation_split=0.2,
+    validation_data=(X_test, y_test),
     callbacks=[early_stopping, model_checkpoint]
 )
 
-# Save the final model
-model.save('final_model.keras')
 
 loss, accuracy = model.evaluate(X_test, y_test)
 print(f'Accuracy: {accuracy}')
+# Save the model
+model.save('improved_model_20240809.keras')
 
 # Load an image (example image path: 'digit.png')
 image = cv2.imread('digit.png', cv2.IMREAD_GRAYSCALE)
