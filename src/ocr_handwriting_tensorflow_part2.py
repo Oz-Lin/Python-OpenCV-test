@@ -2,9 +2,37 @@ import sys
 import cv2
 import numpy as np
 import tensorflow as tf
-from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QLabel, QFileDialog, QVBoxLayout, QWidget, QMenuBar, QMenu, QStatusBar, QGridLayout, QMessageBox
-from PyQt6.QtGui import QPixmap, QAction, QIcon
+from PyQt6.QtWidgets import (QApplication, QMainWindow, QPushButton, QLabel, QFileDialog, QVBoxLayout, QWidget, QMenuBar,
+                              QMenu, QStatusBar, QGridLayout, QMessageBox, QScrollArea)
+from PyQt6.QtGui import QPixmap, QImage, QPainter, QWheelEvent, QAction
 from PyQt6.QtCore import Qt, QMimeData
+
+
+class ZoomableLabel(QLabel):
+    def __init__(self):
+        super().__init__()
+        self._zoom = 1.0
+        self._empty = True
+        self._image = QImage()
+
+    def setImage(self, image):
+        self._zoom = 1.0
+        self._empty = False
+        self._image = image
+        self.setPixmap(QPixmap.fromImage(self._image))
+
+    def wheelEvent(self, event: QWheelEvent):
+        if event.angleDelta().y() > 0:
+            self._zoom += 0.1
+        else:
+            self._zoom -= 0.1
+
+        if self._zoom < 0.1:
+            self._zoom = 0.1
+
+        self.setPixmap(
+            QPixmap.fromImage(self._image).scaled(self._image.size() * self._zoom, Qt.AspectRatioMode.KeepAspectRatio))
+
 
 class ImageClassifierApp(QMainWindow):
     def __init__(self):
@@ -26,6 +54,11 @@ class ImageClassifierApp(QMainWindow):
         load_image_action.triggered.connect(self.load_image)
         file_menu.addAction(load_image_action)
 
+        # Save prediction action
+        save_prediction_action = QAction('Save Prediction', self)
+        save_prediction_action.triggered.connect(self.save_prediction)
+        file_menu.addAction(save_prediction_action)
+
         # Exit action
         exit_action = QAction('Exit', self)
         exit_action.triggered.connect(self.close)
@@ -39,21 +72,11 @@ class ImageClassifierApp(QMainWindow):
         self.layout = QGridLayout()
         self.central_widget.setLayout(self.layout)
 
-        # Image label
-        self.image_label = QLabel('Load an image to classify')
-        self.layout.addWidget(self.image_label, 0, 0, 1, 2)
-
-        '''
-        # Button to load model
-        self.load_model_button = QPushButton('Load Model')
-        self.load_model_button.clicked.connect(self.load_model)
-        self.layout.addWidget(self.load_model_button)
-
-        # Button to load image
-        self.load_button = QPushButton('Load Image')
-        self.load_button.clicked.connect(self.load_image)
-        self.layout.addWidget(self.load_button)
-        '''
+        # Scroll area for the image
+        self.scroll_area = QScrollArea()
+        self.image_label = ZoomableLabel()
+        self.scroll_area.setWidget(self.image_label)
+        self.layout.addWidget(self.scroll_area, 0, 0, 1, 2)
 
         # Button to reset
         self.reset_button = QPushButton('Reset')
@@ -97,8 +120,10 @@ class ImageClassifierApp(QMainWindow):
         try:
             file_name, _ = QFileDialog.getOpenFileName(self, "Open Image File", "", "Image Files (*.png *.jpg *.bmp)")
             if file_name:
-                pixmap = QPixmap(file_name)
-                self.image_label.setPixmap(pixmap.scaled(400, 400, Qt.AspectRatioMode.KeepAspectRatio))
+                # pixmap = QPixmap(file_name)
+                # self.image_label.setPixmap(pixmap.scaled(400, 400, Qt.AspectRatioMode.KeepAspectRatio))
+                image = QImage(file_name)
+                self.image_label.setImage(image)
                 self.statusbar.showMessage(f"Image loaded successfully: {file_name}")
                 self.classify_image(file_name)
         except Exception as e:
@@ -123,6 +148,18 @@ class ImageClassifierApp(QMainWindow):
             self.statusbar.showMessage(f"Error during classification: {e}")
             QMessageBox.critical(self, "Error", f"Classification error: {e}")
 
+    def save_prediction(self):
+        try:
+            save_path, _ = QFileDialog.getSaveFileName(self, "Save Prediction", "", "Image Files (*.png *.jpg *.bmp)")
+            if save_path:
+                pixmap = self.image_label.pixmap()
+                if pixmap:
+                    pixmap.save(save_path)
+                    self.statusbar.showMessage(f"Prediction and image saved to {save_path}")
+        except Exception as e:
+            self.statusbar.showMessage(f"Error saving prediction: {e}")
+            QMessageBox.critical(self, "Error", f"Failed to save prediction: {e}")
+
     def reset(self):
         self.image_label.clear()
         self.result_label.setText("Prediction will be shown here")
@@ -138,26 +175,6 @@ class ImageClassifierApp(QMainWindow):
             file_path = file_url.toLocalFile()
             if file_path.endswith(('.png', '.jpg', '.bmp')):
                 self.load_image(file_path)
-
-    def load_image(self, file_path=None):
-        if self.model is None:
-            self.statusbar.showMessage("No model loaded. Please load a model first.")
-            self.result_label.setText("Please load a model first.")
-            return
-
-        try:
-            if not file_path:
-                file_name, _ = QFileDialog.getOpenFileName(self, "Open Image File", "",
-                                                           "Image Files (*.png *.jpg *.bmp)")
-                file_path = file_name
-            if file_path:
-                pixmap = QPixmap(file_path)
-                self.image_label.setPixmap(pixmap.scaled(400, 400, Qt.AspectRatioMode.KeepAspectRatio))
-                self.statusbar.showMessage(f"Image loaded successfully: {file_path}")
-                self.classify_image(file_path)
-        except Exception as e:
-            self.statusbar.showMessage(f"Error loading image: {e}")
-            QMessageBox.critical(self, "Error", f"Failed to load image: {e}")
 
 
 if __name__ == "__main__":
