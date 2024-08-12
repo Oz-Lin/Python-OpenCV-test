@@ -1,34 +1,34 @@
 from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QLabel, QFileDialog, QVBoxLayout, QWidget, QMenuBar, QMenu, QStatusBar, QGridLayout, QMessageBox, QScrollArea
 from PyQt6.QtGui import QPixmap, QImage, QWheelEvent, QPainter, QAction
-from PyQt6.QtCore import Qt, QMimeData
+from PyQt6.QtCore import Qt, QMimeData, QSize
 from model_handler import ModelHandler
 from image_handler import ImageHandler
 
-class ZoomableLabel(QLabel):
+class ImageLabel(QLabel):
     def __init__(self):
         super().__init__()
-        self._zoom = 1.0
         self._image = QImage()
         self.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
     def setImage(self, image):
-        self._zoom = 1.0
         self._image = image
         self.updatePixmap()
 
     def updatePixmap(self):
         if not self._image.isNull():
-            pixmap = QPixmap.fromImage(self._image)
-            scaled_pixmap = pixmap.scaled(self._zoom * pixmap.size(), Qt.AspectRatioMode.KeepAspectRatio)
+            scaled_pixmap = QPixmap.fromImage(self._image).scaled(
+                self.size(),
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation
+            )
             self.setPixmap(scaled_pixmap)
 
-    def wheelEvent(self, event: QWheelEvent):
-        angle = event.angleDelta().y()
-        factor = 1.1 if angle > 0 else 0.9
-        self._zoom *= factor
-        if self._zoom < 0.1:
-            self._zoom = 0.1
+    def resizeEvent(self, event):
         self.updatePixmap()
+
+    def sizeHint(self):
+        # Set a reasonable default size hint for the label
+        return QSize(800, 600)
 
 class ImageClassifierApp(QMainWindow):
     def __init__(self):
@@ -78,7 +78,7 @@ class ImageClassifierApp(QMainWindow):
 
         # Scroll area for the image
         self.scroll_area = QScrollArea()
-        self.image_label = ZoomableLabel()
+        self.image_label = ImageLabel()
         self.scroll_area.setWidget(self.image_label)
         self.layout.addWidget(self.scroll_area, 0, 0, 1, 2)
 
